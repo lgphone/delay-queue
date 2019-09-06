@@ -1,10 +1,9 @@
-import uuid
-import json
 import time
 from flask import Flask, request, jsonify
-from utils import redis_client
-from config import job_pool_key, delay_pool_key, stop_key_name
-from contr.tasks2.a_task import wait_cal2
+from delay_queue.utils import redis_client
+from delay_queue.base import task_manager
+from delay_queue.config import WORKER_STOP_KEY, IMPORT_TASKS
+from task_task.tasks import wait_cal
 
 app = Flask(__name__)
 
@@ -13,70 +12,45 @@ app = Flask(__name__)
 def hello_world():
     return 'Hello, World!'
 
+# 列出导入的任务
+@app.route('/job/list')
+def job_list():
+    if request.method == 'GET':
+        return jsonify({'status': 100, 'data': list(IMPORT_TASKS)})
 
-@app.route('/job2', methods=['POST'])
-def job2():
-    if request.method == 'POST':
-        result = wait_cal2.delay(1, 2, delay=1567666120313)
-
-        return jsonify({'status': 100, 'data': result})
-
-
-@app.route('/job', methods=['POST', 'DELETE', 'GET'])
-def job():
-    if request.method == 'POST':
-        # print(request.json)
-        if request.json.get('delay'):
-            delay = int(request.json.get('delay'))
-        else:
-            delay = int(time.time() * 1000)
-        job_info = {
-            'task': request.json.get('task'),
-            'id': str(uuid.uuid4()),
-            'delay': delay,
-            'body': request.json.get('body'),
-            'status': 'delay'
-        }
-        print(job_info)
-        # 任务元数据
-        redis_client.hset(job_pool_key, job_info['id'], json.dumps(job_info))
-        redis_client.zadd(delay_pool_key, {job_info['id']: job_info['delay']})
-
-        return jsonify({'status': 100})
-
-    if request.method == 'DELETE':
-        task_id = request.values.get('task_id')
-        print(task_id)
-        if task_id:
-            task_info = redis_client.hget(job_pool_key, task_id)
-            if task_info:
-                task_info = json.loads(task_info.decode('utf-8'))
-                task_info['status'] = 'delete'
-                redis_client.hset(job_pool_key, task_id, json.dumps(task_info))
-
-        return jsonify({'status': 100})
-
+# task 管理
+@app.route('/task', methods=['GET', 'POST', 'DELETE'])
+def task():
     if request.method == 'GET':
         task_id = request.values.get('task_id')
         if task_id:
-            task_info = redis_client.hget(job_pool_key, task_id)
-            task_info = json.loads(task_info.decode('utf-8'))
+            data = task_manager.list_task(task_id)
         else:
-            task_info = redis_client.hgetall(job_pool_key)
-            print(task_info)
-            if task_info:
-                task_info = [json.loads(i.decode('utf-8')) for i in task_info.values()]
-            else:
-                task_info = []
-        return jsonify({'status': 100, 'data': task_info})
+            data = task_manager.list_task()
 
+        return jsonify({'status': 100, 'data': data})
 
+    if request.method == 'POST':
+        # 有delay 参数设置为延迟10秒执行
+        if request.json and request.json.get('delay'):
+            result = wait_cal.delay(692, 28, delay=int(time.time() * 1000) + 10000)
+        else:
+            result = wait_cal.delay(692, 28)
+        return jsonify({'status': 100, 'data': result})
+
+    if request.method == 'DELETE':
+        task_id = request.values.get('task_id')
+        if task_id:
+            task_manager.delete_task(task_id)
+        return jsonify({'status': 100, 'data': None})
+
+# worker 远程停止
 @app.route('/worker', methods=['POST'])
 def worker_mange():
     if request.method == 'POST':
-        redis_client.set(stop_key_name, 1)
+        redis_client.set(WORKER_STOP_KEY, 1)
 
-    return jsonify({'status': 100})
+    return jsonify({'status': 100, 'data': None})
 
 
 if __name__ == '__main__':
