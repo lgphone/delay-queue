@@ -6,7 +6,7 @@ pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT)
 redis_client = redis.Redis(connection_pool=pool)
 
 # 释放锁lua脚本
-release_lock_script = """
+release_lock_script = """\
 if redis.call('get', KEYS[1]) == ARGV[1] 
     then 
         return redis.call('del', KEYS[1]) 
