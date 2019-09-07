@@ -7,7 +7,7 @@ import os
 from threading import Thread, Event
 from delay_queue.utils import redis_client, release_redis_lock
 from delay_queue.config import READY_POOL_KEY, JOB_POOL_KEY, WORKER_NUM, \
-    WORKER_STOP_KEY, IMPORT_TASKS, SELF_KWARGS, JOB_LOCK_KEY_PREFIX, JOB_LOCK_EXP_TIME
+    IMPORT_TASKS, SELF_KWARGS, JOB_LOCK_KEY_PREFIX, JOB_LOCK_EXP_TIME
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -80,8 +80,6 @@ def run_worker_func(worker_id):
 
 if __name__ == "__main__":
     print('start main worker..')
-    # 设置停止flag
-    redis_client.set(WORKER_STOP_KEY, 0)
 
     worker_thread_list = []
     for num in range(0, WORKER_NUM):

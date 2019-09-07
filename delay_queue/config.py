@@ -12,7 +12,6 @@ READY_POOL_KEY = 'delay_queue:ready_pool'
 JOB_LOCK_KEY_PREFIX = 'delay_queue:job:lock:'
 JOB_LOCK_EXP_TIME = 60 * 15  # 任务执行超时15分钟
 
-WORKER_STOP_KEY = 'delay_queue:worker:stop'
 TIMER_LOCK_KEY = 'delay_queue:timer:lock'
 TIMER_LOCK_EXP_TIME = 10  # 秒
 

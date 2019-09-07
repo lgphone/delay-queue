@@ -1,8 +1,7 @@
 import time
 from flask import Flask, request, jsonify
-from delay_queue.utils import redis_client
 from delay_queue.base import task_manager
-from delay_queue.config import WORKER_STOP_KEY, IMPORT_TASKS
+from delay_queue.config import IMPORT_TASKS
 from task_task.tasks import wait_cal
 
 app = Flask(__name__)
@@ -43,14 +42,6 @@ def task():
         if task_id:
             task_manager.delete_task(task_id)
         return jsonify({'status': 100, 'data': None})
-
-# worker 远程停止
-@app.route('/worker', methods=['POST'])
-def worker_mange():
-    if request.method == 'POST':
-        redis_client.set(WORKER_STOP_KEY, 1)
-
-    return jsonify({'status': 100, 'data': None})
 
 
 if __name__ == '__main__':
