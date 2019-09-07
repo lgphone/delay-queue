@@ -39,7 +39,7 @@ def timer_func():
                 # alert
                 print('release lock fail')
         # sleep
-        time.sleep(0.01)
+        time.sleep(0.1)
 
 
 if __name__ == "__main__":
