@@ -4,7 +4,7 @@ import traceback
 import uuid
 import time
 import os
-from threading import Thread
+from threading import Thread, Event
 from delay_queue.utils import redis_client, release_redis_lock
 from delay_queue.config import READY_POOL_KEY, JOB_POOL_KEY, WORKER_NUM, \
     WORKER_STOP_KEY, IMPORT_TASKS, SELF_KWARGS, JOB_LOCK_KEY_PREFIX, JOB_LOCK_EXP_TIME
@@ -17,17 +17,13 @@ task_import_dict = {
     for import_task in IMPORT_TASKS
 }
 
+stop_flag = Event()
+
 
 def run_worker_func(worker_id):
     print(f'start worker-{worker_id}')
-    while True:
-        stop_flag = redis_client.get(WORKER_STOP_KEY)
-        if stop_flag:
-            stop_flag = stop_flag.decode('utf-8')
-            if stop_flag == '1':
-                print(f'exit worker-{worker_id}')
-                break
-        task_tuple = redis_client.brpop(READY_POOL_KEY, timeout=3)
+    while not stop_flag.is_set():
+        task_tuple = redis_client.brpop(READY_POOL_KEY, timeout=1)
         if task_tuple:
             task_id = task_tuple[1].decode('utf-8')
             print(f'worker-{worker_id}: get task: {task_id}')
@@ -78,6 +74,8 @@ def run_worker_func(worker_id):
                     else:
                         # 没有设置成功，重新加入队列
                         redis_client.rpush(READY_POOL_KEY, task_id)
+    else:
+        print(f'stop worker-{worker_id}')
 
 
 if __name__ == "__main__":
@@ -88,8 +86,21 @@ if __name__ == "__main__":
     worker_thread_list = []
     for num in range(0, WORKER_NUM):
         t = Thread(target=run_worker_func, args=(num + 1,))
+        t.daemon = True
         worker_thread_list.append(t)
-        t.start()
 
     for t in worker_thread_list:
-        t.join()
+        t.start()
+
+    while True:
+        try:
+            stop_flag.wait(0.1)
+        except KeyboardInterrupt:
+            print('exiting main worker...')
+            stop_flag.set()
+            for t in worker_thread_list:
+                t.join()
+        if stop_flag.is_set():
+            break
+
+    print('exit main worker..')

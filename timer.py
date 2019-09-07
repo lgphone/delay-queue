@@ -14,7 +14,7 @@ def timer_func():
             # 当前时间戳
             st = int(time.time() * 1000)
             # 获取小于当前时间戳的所有task，加入ready 队列
-            task_id_list = redis_client.zrangebyscore(DELAY_POOL_KEY, 0, st)
+            task_id_list = redis_client.zrangebyscore(DELAY_POOL_KEY, '-inf', st)
             task_id_list = [i.decode('utf-8') for i in task_id_list]
             for task_id in task_id_list:
                 print(f'delay task: {task_id}')
