@@ -1,5 +1,6 @@
 import importlib
 import json
+import traceback
 import uuid
 import time
 import os
@@ -64,9 +65,9 @@ def run_worker_func(worker_id):
                                 task_dict['status'] = 'finish'
                                 task_dict['finish_time'] = int(time.time() * 1000)
                                 task_dict['result'] = result
-                            except Exception as e:
+                            except Exception:
                                 task_dict['status'] = 'error'
-                                task_dict['error'] = str(e)
+                                task_dict['error'] = traceback.format_exc()
                             # 更新任务结果
                             redis_client.hset(JOB_POOL_KEY, task_id, json.dumps(task_dict))
                         # 解锁
