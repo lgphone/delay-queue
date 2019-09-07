@@ -19,7 +19,7 @@ class BaseTask(object):
             'id': str(uuid.uuid4()),
             'delay': kwargs.get('delay'),
             'body': {'args': args, 'kwargs': kwargs},
-            'post_time': int(time.time() * 1000),
+            'create_time': int(time.time() * 1000),
             'start_time': None,
             'delete_time': None,
             'update_time': None,
